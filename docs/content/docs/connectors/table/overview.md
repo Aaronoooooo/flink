@@ -51,12 +51,18 @@ Flink natively support various connectors. The following tables list all availab
     <tr>
       <td><a href="{{< ref "docs/connectors/table/filesystem" >}}">Filesystem</a></td>
       <td></td>
-      <td>Bounded and Unbounded Scan, Lookup</td>
+      <td>Bounded and Unbounded Scan</td>
       <td>Streaming Sink, Batch Sink</td>
     </tr>
     <tr>
       <td><a href="{{< ref "docs/connectors/table/elasticsearch" >}}">Elasticsearch</a></td>
       <td>6.x & 7.x</td>
+      <td>Not supported</td>
+      <td>Streaming Sink, Batch Sink</td>
+    </tr>
+    <tr>
+      <td><a href="{{< ref "docs/connectors/table/opensearch" >}}">Opensearch</a></td>
+      <td>1.x & 2.x</td>
       <td>Not supported</td>
       <td>Streaming Sink, Batch Sink</td>
     </tr>
@@ -67,9 +73,21 @@ Flink natively support various connectors. The following tables list all availab
       <td>Streaming Sink, Batch Sink</td>
     </tr>
     <tr>
+      <td><a href="{{< ref "docs/connectors/table/dynamodb" >}}">Amazon DynamoDB</a></td>
+      <td></td>
+      <td>Not supported</td>
+      <td>Streaming Sink, Batch Sink</td>
+    </tr>
+    <tr>
       <td><a href="{{< ref "docs/connectors/table/kinesis" >}}">Amazon Kinesis Data Streams</a></td>
       <td></td>
       <td>Unbounded Scan</td>
+      <td>Streaming Sink</td>
+    </tr>
+    <tr>
+      <td><a href="{{< ref "docs/connectors/table/firehose" >}}">Amazon Kinesis Data Firehose</a></td>
+      <td></td>
+      <td>Not supported</td>
       <td>Streaming Sink</td>
     </tr>
     <tr>
@@ -90,6 +108,12 @@ Flink natively support various connectors. The following tables list all availab
       <td>Unbounded Scan, Bounded Scan, Lookup</td>
       <td>Streaming Sink, Batch Sink</td>
     </tr>
+    <tr>
+      <td><a href="{{< ref "docs/connectors/table/mongodb" >}}">MongoDB</a></td>
+      <td>3.6.x & 4.x & 5.x & 6.x & 7.0.x </td>
+      <td>Bounded Scan, Lookup</td>
+      <td>Streaming Sink, Batch Sink</td>
+    </tr>
     </tbody>
 </table>
 
@@ -103,7 +127,7 @@ How to use connectors
 Flink supports using SQL `CREATE TABLE` statements to register tables. One can define the table name,
 the table schema, and the table options for connecting to an external system.
 
-See the [SQL section for more information about creating a table]({{< ref "docs/dev/table/sql/create" >}}#create-table).
+See the [SQL section for more information about creating a table]({{< ref "docs/sql/reference/ddl/create" >}}#create-table).
 
 The following code shows a full example of how to connect to Kafka for reading and writing JSON records.
 
@@ -144,7 +168,7 @@ Transform table connector/format resources
 
 Flink uses Java's [Service Provider Interfaces (SPI)](https://docs.oracle.com/javase/tutorial/sound/SPI-intro.html) to load the table connector/format factories by their identifiers. Since the SPI resource file named `org.apache.flink.table.factories.Factory` for every table connector/format is under the same directory `META-INF/services`, these resource files will override each other when build the uber-jar of the project which uses more than one table connector/format, which will cause Flink to fail to load table connector/format factories.
 
-In this situation, the recommended way is transforming these resource files under the directory `META-INF/services` by [ServicesResourceTransformer](https://maven.apache.org/plugins/maven-shade-plugin/examples/resource-transformers.html) of maven shade plugin. Given the pom.xml file content of example that contains connector `flink-sql-connector-hive-3.1.2` and format `flink-parquet` in a project.
+In this situation, the recommended way is transforming these resource files under the directory `META-INF/services` by [ServicesResourceTransformer](https://maven.apache.org/plugins/maven-shade-plugin/examples/resource-transformers.html) of maven shade plugin. Given the pom.xml file content of example that contains connector `flink-sql-connector-hive-3.1.3` and format `flink-parquet` in a project.
 
 ```xml
 
@@ -157,7 +181,7 @@ In this situation, the recommended way is transforming these resource files unde
         <!--  other project dependencies  ...-->
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-sql-connector-hive-3.1.2{{< scala_version >}}</artifactId>
+            <artifactId>flink-sql-connector-hive-3.1.3{{< scala_version >}}</artifactId>
             <version>{{< version >}}</version>
         </dependency>
 
@@ -229,7 +253,7 @@ CREATE TABLE MyTable (
 ### Metadata
 
 Some connectors and formats expose additional metadata fields that can be accessed in metadata columns
-next to the physical payload columns. See the [`CREATE TABLE` section]({{< ref "docs/dev/table/sql/create" >}}#columns)
+next to the physical payload columns. See the [`CREATE TABLE` section]({{< ref "docs/sql/reference/ddl/create" >}}#columns)
 for more information about metadata columns.
 
 ### Primary Key
@@ -259,11 +283,11 @@ CREATE TABLE MyTable (
 
 Time attributes are essential when working with unbounded streaming tables. Therefore both proctime and rowtime attributes can be defined as part of the schema.
 
-For more information about time handling in Flink and especially event-time, we recommend the general [event-time section]({{< ref "docs/dev/table/concepts/time_attributes" >}}).
+For more information about time handling in Flink and especially event-time, we recommend the general [event-time section]({{< ref "docs/concepts/sql-table-concepts/time_attributes" >}}).
 
 #### Proctime Attributes
 
-In order to declare a proctime attribute in the schema, you can use [Computed Column syntax]({{< ref "docs/dev/table/sql/create" >}}#create-table) to declare a computed column which is generated from `PROCTIME()` builtin function.
+In order to declare a proctime attribute in the schema, you can use [Computed Column syntax]({{< ref "docs/sql/reference/ddl/create" >}}#create-table) to declare a computed column which is generated from `PROCTIME()` builtin function.
 The computed column is a virtual column which is not stored in the physical data.
 
 {{< tabs "5d1f475b-a002-4e85-84f4-00ab0a55a548" >}}
@@ -285,7 +309,7 @@ CREATE TABLE MyTable (
 
 In order to control the event-time behavior for tables, Flink provides predefined timestamp extractors and watermark strategies.
 
-Please refer to [CREATE TABLE statements]({{< ref "docs/dev/table/sql/create" >}}#create-table) for more information about defining time attributes in DDL.
+Please refer to [CREATE TABLE statements]({{< ref "docs/sql/reference/ddl/create" >}}#create-table) for more information about defining time attributes in DDL.
 
 The following timestamp extractors are supported:
 
@@ -353,6 +377,6 @@ Make sure to always declare both timestamps and watermarks. Watermarks are requi
 
 ### SQL Types
 
-Please see the [Data Types]({{< ref "docs/dev/table/types" >}}) page about how to declare a type in SQL.
+Please see the [Data Types]({{< ref "docs/sql/reference/data-types" >}}) page about how to declare a type in SQL.
 
 {{< top >}}
